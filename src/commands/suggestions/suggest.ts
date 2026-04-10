@@ -1,0 +1,47 @@
+import {
+	Command,
+	type CommandContext,
+	createStringOption,
+	Declare,
+	Options,
+} from "seyfert";
+import { MessageFlags } from "seyfert/lib/types";
+import { Embeds } from "../../utils/embeds";
+
+const options = {
+	sugerencia: createStringOption({
+		description: "Escribe aqui el contenido de tu sugerencia",
+		required: true,
+		min_length: 40,
+	}),
+};
+
+@Declare({
+	name: "suggest",
+	description: "Haz una sugerencia al servidor",
+})
+@Options(options)
+export default class SuggestCommand extends Command {
+	override async run(ctx: CommandContext<typeof options>) {
+		const { sugerencia } = ctx.options;
+
+		const suggestion = await ctx.client.messages.write(ctx.channelId, {
+			embeds: [Embeds.suggestionEmbed(ctx, sugerencia)],
+		});
+
+		await suggestion.react("✅");
+		await suggestion.react("❌");
+
+		await ctx.client.messages.thread(suggestion.channelId, suggestion.id, {
+			name: `Sugerencia de ${ctx.author.username}`,
+		});
+
+		return ctx.write({
+			content:
+				"Tu sugerencia se ha enviado con exito." +
+				`\n\n` +
+				`Puedes verla ahora en: https://discord.com/channels/${ctx.guildId}/${ctx.channelId}/${suggestion.id}`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+}
