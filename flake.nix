@@ -21,6 +21,7 @@
           pkgs.bun
           pkgs.typescript-language-server
           pkgs.typescript
+          pkgs.husky
         ];
         buildInputs = with pkgs; [ ];
       in

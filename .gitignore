@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 .envrc
 !.envrc.template
 .direnv
+
+# Db
+postgres_data/
