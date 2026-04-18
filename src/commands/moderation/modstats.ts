@@ -42,6 +42,13 @@ const options = {
 @Declare({
 	name: "modstats",
 	description: "Estadísticas y top de moderación del servidor",
+	props: {
+		requiredRoles: [
+			CONFIG.ROLES.ADMIN,
+			CONFIG.ROLES.MODERATOR,
+			CONFIG.ROLES.HELPER,
+		],
+	},
 })
 @Options(options)
 @Middlewares(["auth"])

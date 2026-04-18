@@ -48,6 +48,13 @@ const options = {
 @Declare({
 	name: "mute",
 	description: "Silencia a un usuario (chat o voz)",
+	props: {
+		requiredRoles: [
+			CONFIG.ROLES.ADMIN,
+			CONFIG.ROLES.MODERATOR,
+			CONFIG.ROLES.HELPER,
+		],
+	},
 })
 @Options(options)
 @Middlewares(["auth"])

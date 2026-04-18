@@ -8,6 +8,7 @@ import {
 	Options,
 } from "seyfert";
 import { MessageFlags } from "seyfert/lib/types";
+import { CONFIG } from "../../config/config";
 import { moderationService } from "../../services/moderationService";
 import { Embeds } from "../../utils/embeds";
 import {
@@ -33,6 +34,13 @@ const options = {
 @Declare({
 	name: "ban",
 	description: "Banea a un usuario del servidor",
+	props: {
+		requiredRoles: [
+			CONFIG.ROLES.ADMIN,
+			CONFIG.ROLES.MODERATOR,
+			CONFIG.ROLES.HELPER,
+		],
+	},
 })
 @Options(options)
 @Middlewares(["auth"])

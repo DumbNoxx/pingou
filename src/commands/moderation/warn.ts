@@ -34,6 +34,13 @@ const options = {
 @Declare({
 	name: "warn",
 	description: "Envía una advertencia a un usuario",
+	props: {
+		requiredRoles: [
+			CONFIG.ROLES.ADMIN,
+			CONFIG.ROLES.MODERATOR,
+			CONFIG.ROLES.HELPER,
+		],
+	},
 })
 @Options(options)
 @Middlewares(["auth"])

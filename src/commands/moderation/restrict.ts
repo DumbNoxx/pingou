@@ -49,6 +49,13 @@ const options = {
 @Declare({
 	name: "restrict",
 	description: "Aplica un rol de restricción específico",
+	props: {
+		requiredRoles: [
+			CONFIG.ROLES.ADMIN,
+			CONFIG.ROLES.MODERATOR,
+			CONFIG.ROLES.HELPER,
+		],
+	},
 })
 @Options(options)
 @Middlewares(["auth"])
@@ -91,8 +98,7 @@ export default class RestrictCommand extends Command {
 			return;
 		}
 
-		const roleId =
-			CONFIG.RESTRICTIONS[tipo as keyof typeof CONFIG.RESTRICTIONS];
+		const roleId = CONFIG.RESTRICTIONS[tipo];
 		if (!roleId) {
 			await replyModerationError(ctx, "Rol no configurado.");
 			return;
