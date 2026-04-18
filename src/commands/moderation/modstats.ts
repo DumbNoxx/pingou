@@ -7,6 +7,7 @@ import {
 	Options,
 } from "seyfert";
 import { MessageFlags } from "seyfert/lib/types";
+import { CONFIG } from "../../config/config";
 import {
 	moderationService,
 	type Period,
