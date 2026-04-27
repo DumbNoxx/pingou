@@ -1,11 +1,19 @@
 import { createEvent } from "seyfert";
 import { aiService } from "../services/ai";
 import { cooldownService } from "../services/cooldown";
+import { bumpService } from "../services/bumpService";
 import { Embeds } from "../utils/embeds";
+
+const DISBOARD_ID = "302050872383242240";
 
 export default createEvent({
 	data: { once: false, name: "messageCreate" },
 	async run(message, client) {
+		if (message.author.id === DISBOARD_ID) {
+			await bumpService.handleBump(message);
+			return;
+		}
+
 		if (message.author.bot) return;
 
 		if (message.mentions.users.some((u) => u.id === client.me.id)) {
