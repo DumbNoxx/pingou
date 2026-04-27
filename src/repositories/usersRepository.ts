@@ -15,7 +15,7 @@ export class UsersRepository {
 			.from(users)
 			.where(eq(users.userId, userId))
 			.limit(1);
-		return existing[0]!;
+		return existing[0] ?? { userId, rep: 0, repEmpleos: 0 };
 	}
 
 	async incrementRep(userId: string, points: number) {
@@ -25,7 +25,7 @@ export class UsersRepository {
 			.set({ rep: sql`${users.rep} + ${points}` })
 			.where(eq(users.userId, userId))
 			.returning();
-		return result[0]!.rep;
+		return result[0]?.rep ?? 0;
 	}
 
 	async incrementRepEmpleos(userId: string, points: number) {
@@ -35,7 +35,7 @@ export class UsersRepository {
 			.set({ repEmpleos: sql`${users.repEmpleos} + ${points}` })
 			.where(eq(users.userId, userId))
 			.returning();
-		return result[0]!.repEmpleos;
+		return result[0]?.repEmpleos ?? 0;
 	}
 
 	async getRep(userId: string) {

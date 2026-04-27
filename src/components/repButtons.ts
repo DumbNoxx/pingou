@@ -68,13 +68,12 @@ export default class RepButtons extends ComponentCommand {
 
 		await pendingRepRepository.deleteById(pendingId);
 
-		const { points, prevPoints, newRoles } =
-			await reputationService.addRepAndCheckRoles(
-				ctx.client,
-				ctx.guildId ?? "",
-				pending.receiverId,
-				ctx.author.id,
-			);
+		const { points, prevPoints } = await reputationService.addRepAndCheckRoles(
+			ctx.client,
+			ctx.guildId ?? "",
+			pending.receiverId,
+			ctx.author.id,
+		);
 
 		let receiverName = pending.receiverId;
 		try {
