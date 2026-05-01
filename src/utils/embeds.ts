@@ -1,5 +1,6 @@
 import type { GenerateContentResponseUsageMetadata } from "@google/genai";
 import { type CommandContext, Embed } from "seyfert";
+import { CONFIG } from "../config/config";
 import { formatDurationForModEmbed } from "./duration";
 
 export const Embeds = {
@@ -534,7 +535,9 @@ export const Embeds = {
 
 		const tierText = data.currentTier
 			? `<@&${data.currentTier.roleId}>`
-			: "*Sin rol de reputación aún*";
+			: CONFIG.ROLES.NOVATO
+				? `<@&${CONFIG.ROLES.NOVATO}>`
+				: "*Sin rol de reputación aún*";
 
 		return new Embed()
 			.setTitle(`Reputación de ${data.username}`)
@@ -546,6 +549,21 @@ export const Embeds = {
 				{ name: "Progreso", value: progressText, inline: false },
 			])
 			.setFooter({ text: `ID: ${data.userId}` })
+			.setTimestamp();
+	},
+
+	repRoleUpEmbed(data: {
+		userId: string;
+		roleNames: string[];
+		points: number;
+	}): Embed {
+		const rolesText = data.roleNames.join(", ");
+		return new Embed()
+			.setTitle("¡Subiste de rango!")
+			.setColor("Gold")
+			.setDescription(
+				`<@${data.userId}> alcanzó **${rolesText}** con **${data.points} puntos** de reputación. ¡Felicitaciones!`,
+			)
 			.setTimestamp();
 	},
 

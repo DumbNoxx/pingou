@@ -84,6 +84,34 @@ export default class RepButtons extends ComponentCommand {
 			receiverName = member?.user?.username ?? pending.receiverId;
 		} catch {}
 
+		// Felicitación pública si subió de rango
+		if (newRoles.length > 0) {
+			const roleNames = await Promise.all(
+				newRoles.map(async (roleId) => {
+					try {
+						const role = await ctx.client.roles.fetch(
+							ctx.guildId ?? "",
+							roleId,
+						);
+						return role?.name ?? roleId;
+					} catch {
+						return roleId;
+					}
+				}),
+			);
+			ctx.client.messages
+				.write(pending.originalChannelId, {
+					embeds: [
+						Embeds.repRoleUpEmbed({
+							userId: pending.receiverId,
+							roleNames,
+							points,
+						}),
+					],
+				})
+				.catch(() => {});
+		}
+
 		// Log en canal de puntos
 		if (CONFIG.CHANNELS.REP_LOG) {
 			const logContent =

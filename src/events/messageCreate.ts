@@ -48,6 +48,24 @@ export default createEvent({
 
 		if (message.author.bot) return;
 
+		// Auto-thread en canales configurados
+		const autoChannels = CONFIG.AUTO_THREAD_CHANNELS.filter(Boolean);
+		if (autoChannels.includes(message.channelId)) {
+			try {
+				const raw = message.content?.trim() || message.author.username;
+				const threadName = raw.slice(0, 100);
+				const thread = await client.messages.thread(
+					message.channelId,
+					message.id,
+					{ name: threadName, auto_archive_duration: 1440 },
+				);
+				await client.messages.write(thread.id, {
+					content: `<@${message.author.id}>`,
+				});
+			} catch {}
+			return;
+		}
+
 		// AI mention reply
 		if (message.mentions.users.some((u) => u.id === client.me.id)) {
 			const userId = message.author.id;

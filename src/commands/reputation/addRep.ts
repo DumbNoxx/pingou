@@ -40,7 +40,7 @@ const options = {
 @Middlewares(["auth"])
 export default class AddRepCommand extends Command {
 	override async run(ctx: CommandContext<typeof options>) {
-		const { usuario, cantidad = 1 } = ctx.options;
+		const { usuario, cantidad: cantidadRaw = 1 } = ctx.options;
 		const guildId = ctx.guildId;
 		if (!guildId) return;
 
@@ -49,6 +49,24 @@ export default class AddRepCommand extends Command {
 				embeds: [Embeds.errorEmbed("Error", "No podés darle rep a un bot.")],
 				flags: MessageFlags.Ephemeral,
 			});
+		}
+
+		const userRoles = ctx.member?.roles.keys ?? [];
+		const isAdmin =
+			CONFIG.ROLES.ADMIN && userRoles.includes(CONFIG.ROLES.ADMIN);
+		const cantidad = isAdmin ? cantidadRaw : 1;
+
+		if (!isAdmin && cantidadRaw > 1) {
+			await ctx.write({
+				embeds: [
+					Embeds.errorEmbed(
+						"Sin permiso",
+						"Solo los admins pueden dar más de 1 punto a la vez.",
+					),
+				],
+				flags: MessageFlags.Ephemeral,
+			});
+			return;
 		}
 
 		const { points, prevPoints, newRoles } =
@@ -61,17 +79,37 @@ export default class AddRepCommand extends Command {
 				"manual",
 			);
 
+		if (newRoles.length > 0) {
+			const roleNames = await Promise.all(
+				newRoles.map(async (roleId) => {
+					try {
+						const role = await ctx.client.roles.fetch(guildId, roleId);
+						return role?.name ?? roleId;
+					} catch {
+						return roleId;
+					}
+				}),
+			);
+			ctx.client.messages
+				.write(ctx.channelId, {
+					embeds: [
+						Embeds.repRoleUpEmbed({
+							userId: usuario.id,
+							roleNames,
+							points,
+						}),
+					],
+				})
+				.catch(() => {});
+		}
+
 		if (CONFIG.CHANNELS.REP_LOG) {
-			const roleText =
-				newRoles.length > 0
-					? `\nNuevo rol: ${newRoles.map((r) => `<@&${r}>`).join(", ")}`
-					: "";
 			ctx.client.messages
 				.write(CONFIG.CHANNELS.REP_LOG, {
 					content:
 						`**${ctx.author.username}** le ha dado +${cantidad} rep al usuario: \`${usuario.username}\`` +
 						` (Comando manual)` +
-						`\n> *Puntos anteriores: ${prevPoints}. Puntos actuales: ${points}*${roleText}`,
+						`\n> *Puntos anteriores: ${prevPoints}. Puntos actuales: ${points}*`,
 				})
 				.catch(() => {});
 		}
