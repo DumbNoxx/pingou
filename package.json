@@ -39,7 +39,7 @@
 	"private": true,
 	"lint-staged": {
 		"*.{ts,js,json}": [
-			"biome format --write",
+			"biome check --write",
 			"biome lint --write"
 		]
 	}

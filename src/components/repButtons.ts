@@ -8,7 +8,7 @@ import { ButtonStyle, MessageFlags } from "seyfert/lib/types";
 import { CONFIG } from "../config/config";
 import { pendingRepRepository } from "../repositories/pendingRepRepository";
 import { reputationService } from "../services/reputationService";
-import { Embeds } from "../utils/embeds";
+import { Embeds, hasEmbed } from "../utils/embeds";
 
 type RawEmbed = {
 	fields?: Array<{ name: string; value: string; inline?: boolean }>;
@@ -55,6 +55,9 @@ export default class RepButtons extends ComponentCommand {
 		const index = ctx.customId.replace("rep-approve-", "");
 		const pendingId = `${notifMsgId}-${index}`;
 
+		const guildId = ctx.guildId;
+		if (!guildId) return;
+
 		await ctx.deferUpdate();
 
 		const pending = await pendingRepRepository.findById(pendingId);
@@ -68,67 +71,63 @@ export default class RepButtons extends ComponentCommand {
 
 		await pendingRepRepository.deleteById(pendingId);
 
-		const { points, prevPoints, newRoles } =
-			await reputationService.addRepAndCheckRoles(
-				ctx.client,
-				ctx.guildId ?? "",
-				pending.receiverId,
-				ctx.author.id,
-			);
+		const { points, addedRoles } = await reputationService.addRepAndCheckRoles(
+			ctx.client,
+			{
+				guildId: ctx.guildId,
+				receiverId: pending.receiverId,
+				giverId: ctx.author.id,
+			},
+		);
 
 		let receiverName = pending.receiverId;
 		try {
 			const member = await ctx.client.members.fetch(
-				ctx.guildId ?? "",
+				ctx.guildId,
 				pending.receiverId,
 			);
-			receiverName = member?.user?.username ?? pending.receiverId;
+			receiverName = member.username ?? pending.receiverId;
 		} catch {}
 
 		// Felicitación pública si subió de rango
-		if (newRoles.length > 0) {
+
+		if (addedRoles.length) {
 			const roleNames = await Promise.all(
-				newRoles.map(async (roleId) => {
-					try {
-						const role = await ctx.client.roles.fetch(
-							ctx.guildId ?? "",
-							roleId,
-						);
-						return role?.name ?? roleId;
-					} catch {
-						return roleId;
-					}
-				}),
+				addedRoles.map((roleId) =>
+					ctx.client.roles
+						.fetch(guildId, roleId)
+						.then((r) => r?.name ?? roleId)
+						.catch(() => roleId),
+				),
 			);
-			ctx.client.messages
-				.write(pending.originalChannelId, {
-					embeds: [
-						Embeds.repRoleUpEmbed({
-							userId: pending.receiverId,
-							roleNames,
-							points,
-						}),
-					],
-				})
-				.catch(() => {});
+
+			await ctx.client.messages.write(pending.originalChannelId, {
+				embeds: [
+					Embeds.repRoleUpEmbed({
+						userId: pending.receiverId,
+						roleNames,
+						points,
+					}),
+				],
+			});
 		}
 
-		// Log en canal de puntos
-		if (CONFIG.CHANNELS.REP_LOG) {
-			const logContent =
-				`**${ctx.author.username}** le ha dado +1 rep al usuario: \`${receiverName}\`` +
-				` (Canal: <#${CONFIG.CHANNELS.REP_NOTIFICATION}>) - (Razón: <#${pending.originalChannelId}>)` +
-				`\n> *Puntos anteriores: ${prevPoints}. Puntos actuales: ${points}*`;
-			ctx.client.messages
-				.write(CONFIG.CHANNELS.REP_LOG, { content: logContent })
-				.catch(() => {});
-		}
+		await reputationService
+			.sendLogRep(ctx.client, {
+				giverId: ctx.author.id,
+				giverName: ctx.author.username,
+				newRoles: addedRoles,
+				points,
+				receiverId: pending.receiverId,
+				receiverName,
+			})
+			.catch(console.error);
 
 		const remaining = await pendingRepRepository.findByMessageId(notifMsgId);
+		const embeds = ctx.interaction.message.embeds;
 
 		// Marcar en el embed al ayudante que recibió rep
-		const existingEmbed = (ctx.interaction.message.embeds?.[0] ??
-			{}) as RawEmbed;
+		const existingEmbed = (hasEmbed(embeds) ? embeds[0] : {}) as RawEmbed;
 		const fields = (existingEmbed.fields ?? []).map((f) => {
 			if (f.name !== "POSIBLES AYUDANTES") return f;
 			const lines = f.value.split("\n");

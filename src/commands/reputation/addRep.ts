@@ -11,6 +11,7 @@ import { MessageFlags } from "seyfert/lib/types";
 import { CONFIG } from "../../config/config";
 import { reputationService } from "../../services/reputationService";
 import { Embeds } from "../../utils/embeds";
+import { cleanString } from "../../utils/string";
 
 const options = {
 	usuario: createUserOption({
@@ -40,23 +41,30 @@ const options = {
 @Middlewares(["auth"])
 export default class AddRepCommand extends Command {
 	override async run(ctx: CommandContext<typeof options>) {
-		const { usuario, cantidad: cantidadRaw = 1 } = ctx.options;
+		const { usuario: user, cantidad: amountRaw = 1 } = ctx.options;
 		const guildId = ctx.guildId;
-		if (!guildId) return;
+		if (!guildId || !ctx.member) return;
 
-		if (usuario.bot) {
+		if (user.bot) {
 			return ctx.write({
 				embeds: [Embeds.errorEmbed("Error", "No podés darle rep a un bot.")],
 				flags: MessageFlags.Ephemeral,
 			});
 		}
 
-		const userRoles = ctx.member?.roles.keys ?? [];
+		if (user.id === ctx.author.id) {
+			return ctx.write({
+				embeds: [Embeds.errorEmbed("Error", "No te podés dar rep vos mismo.")],
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+
+		const userRoles = ctx.member.roles.keys ?? [];
 		const isAdmin =
 			CONFIG.ROLES.ADMIN && userRoles.includes(CONFIG.ROLES.ADMIN);
-		const cantidad = isAdmin ? cantidadRaw : 1;
+		const amount = isAdmin ? amountRaw : 1;
 
-		if (!isAdmin && cantidadRaw > 1) {
+		if (!isAdmin && amountRaw > 1) {
 			await ctx.write({
 				embeds: [
 					Embeds.errorEmbed(
@@ -69,56 +77,58 @@ export default class AddRepCommand extends Command {
 			return;
 		}
 
-		const { points, prevPoints, newRoles } =
-			await reputationService.addRepAndCheckRoles(
-				ctx.client,
+		const { points, addedRoles } = await reputationService.addRepAndCheckRoles(
+			ctx.client,
+			{
 				guildId,
-				usuario.id,
-				ctx.author.id,
-				cantidad,
-				"manual",
-			);
+				receiverId: user.id,
+				giverId: ctx.author.id,
+				amount,
+				reason: "manual",
+			},
+		);
 
-		if (newRoles.length > 0) {
+		if (addedRoles.length) {
 			const roleNames = await Promise.all(
-				newRoles.map(async (roleId) => {
-					try {
-						const role = await ctx.client.roles.fetch(guildId, roleId);
-						return role?.name ?? roleId;
-					} catch {
-						return roleId;
-					}
-				}),
+				addedRoles.map((roleId) =>
+					ctx.client.roles
+						.fetch(guildId, roleId)
+						.then((r) => r?.name ?? roleId)
+						.catch(() => roleId),
+				),
 			);
-			ctx.client.messages
-				.write(ctx.channelId, {
-					embeds: [
-						Embeds.repRoleUpEmbed({
-							userId: usuario.id,
-							roleNames,
-							points,
-						}),
-					],
-				})
-				.catch(() => {});
+
+			await ctx.client.messages.write(ctx.channelId, {
+				embeds: [
+					Embeds.repRoleUpEmbed({
+						userId: user.id,
+						roleNames,
+						points,
+					}),
+				],
+			});
 		}
 
-		if (CONFIG.CHANNELS.REP_LOG) {
-			ctx.client.messages
-				.write(CONFIG.CHANNELS.REP_LOG, {
-					content:
-						`**${ctx.author.username}** le ha dado +${cantidad} rep al usuario: \`${usuario.username}\`` +
-						` (Comando manual)` +
-						`\n> *Puntos anteriores: ${prevPoints}. Puntos actuales: ${points}*`,
-				})
-				.catch(() => {});
-		}
+		await reputationService
+			.sendLogRep(ctx.client, {
+				giverId: ctx.author.id,
+				giverName: ctx.author.name,
+				newRoles: addedRoles,
+				points,
+				receiverId: user.id,
+				receiverName: user.name,
+			})
+			.catch(console.error);
+
+		const singular = amount === 1;
 
 		await ctx.write({
 			embeds: [
 				Embeds.successEmbed(
 					"Reputación agregada",
-					`Se ${cantidad === 1 ? "agregó **1 punto**" : `agregaron **${cantidad} puntos**`} de reputación a <@${usuario.id}>.\nPuntos actuales: **${points}**${newRoles.length > 0 ? `\nNuevo rol: ${newRoles.map((r) => `<@&${r}>`).join(", ")}` : ""}`,
+					cleanString`Se agreg${singular ? "ó" : "aron"} **${amount}** punto${singular ? "" : "s"}* de reputación a <@${user.id}>.
+                    Puntos actuales: **${points}**
+                    ${addedRoles.length > 0 ? `Nuevo rol: ${addedRoles.map((r) => `<@&${r}>`).join(", ")}` : ""}`,
 				),
 			],
 			flags: MessageFlags.Ephemeral,
