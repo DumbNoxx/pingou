@@ -1,3 +1,5 @@
+import z from "zod";
+
 export const CONFIG = {
 	GUILD_ID: "",
 	ROLES: {
@@ -41,3 +43,21 @@ export const CONFIG = {
 		{ minPoints: 70, roleId: "1400004966009147435" }, // Experto
 	],
 };
+
+const Envscheme = z.object({
+    POSTGRES_URL: z.string(),
+    BOT_TOKEN: z.string()
+})
+
+const Environemt = () => {
+    const result = Envscheme.safeParse(process.env)
+    if (!result.success) {
+        result.error.issues.forEach((issue) => {
+            throw new Error(`Field ${issue.path.join(".")} | Error ${issue.message}`);
+        })
+    }
+    return result.data;
+}
+
+export const env = Environemt();
+
