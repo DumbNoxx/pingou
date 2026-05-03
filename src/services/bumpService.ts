@@ -1,10 +1,4 @@
-import {
-	ActionRow,
-	Button,
-	type InMessageEmbed,
-	type Message,
-	type UsingClient,
-} from "seyfert";
+import { ActionRow, Button, type Message, type UsingClient } from "seyfert";
 import { ButtonStyle } from "seyfert/lib/types";
 import { CONFIG } from "../config/config";
 import { JobType } from "../database/schemas/schedules";
@@ -12,7 +6,7 @@ import {
 	bumpRepository,
 	type LastBumpType,
 } from "../repositories/bumpRepository";
-import { Embeds } from "../utils/embeds";
+import { Embeds, hasEmbed } from "../utils/embeds";
 import { schedulerService } from "./scheduler";
 
 const JOB_TYPE = JobType.BumpReminder;
@@ -111,12 +105,6 @@ export class BumpService {
 			.write(message.channelId, { components: [row] })
 			.catch(console.error);
 	}
-}
-
-function hasEmbed(
-	embeds: InMessageEmbed[],
-): embeds is [InMessageEmbed, ...InMessageEmbed[]] {
-	return embeds.length > 0;
 }
 
 export const bumpService = new BumpService();

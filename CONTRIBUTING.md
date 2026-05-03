@@ -22,13 +22,13 @@ cd pingou
 bun install
 ```
 
-4. **Configura husky**:
+4. **Configura lefthook**:
 
 ```bash
 bun run prepare
 ```
 
-Esto instala los hooks de Husky para validar commits, lint y formato automáticamente.
+Esto instala los hooks de Lefthook para validar commits, lint y formato automáticamente.
 
 5. **Variables de entorno**
 

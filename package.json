@@ -9,7 +9,7 @@
 		"@types/bun": "latest",
 		"@types/pg": "^8.20.0",
 		"drizzle-kit": "^0.31.10",
-		"husky": "^9.1.7",
+		"lefthook": "^2.1.6",
 		"lint-staged": "^16.4.0"
 	},
 	"peerDependencies": {
@@ -28,7 +28,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"db:push": "drizzle-kit push",
-		"prepare": "husky"
+		"prepare": "lefthook install"
 	},
 	"dependencies": {
 		"@google/genai": "^1.50.0",
@@ -39,7 +39,7 @@
 	"private": true,
 	"lint-staged": {
 		"*.{ts,js,json}": [
-			"biome format --write",
+			"biome check --write",
 			"biome lint --write"
 		]
 	}

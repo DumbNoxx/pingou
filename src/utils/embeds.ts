@@ -1,6 +1,14 @@
 import type { GenerateContentResponseUsageMetadata } from "@google/genai";
-import { type CommandContext, Embed } from "seyfert";
+import { type CommandContext, Embed, type InMessageEmbed } from "seyfert";
+import { CONFIG } from "../config/config";
+import type { CreateRepLogI } from "../services/reputationService";
 import { formatDurationForModEmbed } from "./duration";
+
+export function hasEmbed(
+	embeds: InMessageEmbed[],
+): embeds is [InMessageEmbed, ...InMessageEmbed[]] {
+	return embeds.length > 0;
+}
 
 export const Embeds = {
 	successEmbed(title: string, description?: string): Embed {
@@ -534,7 +542,9 @@ export const Embeds = {
 
 		const tierText = data.currentTier
 			? `<@&${data.currentTier.roleId}>`
-			: "*Sin rol de reputación aún*";
+			: CONFIG.ROLES.NOVATO
+				? `<@&${CONFIG.ROLES.NOVATO}>`
+				: "*Sin rol de reputación aún*";
 
 		return new Embed()
 			.setTitle(`Reputación de ${data.username}`)
@@ -549,14 +559,22 @@ export const Embeds = {
 			.setTimestamp();
 	},
 
-	repLogEmbed(data: {
-		receiverId: string;
-		receiverName: string;
-		giverId: string;
-		giverName: string;
+	repRoleUpEmbed(data: {
+		userId: string;
+		roleNames: string[];
 		points: number;
-		newRoles: string[];
 	}): Embed {
+		const rolesText = data.roleNames.join(", ");
+		return new Embed()
+			.setTitle("¡Subiste de rango!")
+			.setColor("Gold")
+			.setDescription(
+				`<@${data.userId}> alcanzó **${rolesText}** con **${data.points} puntos** de reputación. ¡Felicitaciones!`,
+			)
+			.setTimestamp();
+	},
+
+	repLogEmbed(data: CreateRepLogI): Embed {
 		const roleText =
 			data.newRoles.length > 0
 				? `\nNuevo rol: ${data.newRoles.map((r) => `<@&${r}>`).join(", ")}`
