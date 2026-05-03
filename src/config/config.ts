@@ -54,15 +54,17 @@ const Envscheme = z.object({
 	PUBLIC_KEY: z.string(),
 	PORT: z.coerce.number(),
 });
+type Env = z.infer<typeof Envscheme>;
 
-const Environment = () => {
+const Environment = (): Env => {
 	const result = Envscheme.safeParse(process.env);
 	if (!result.success) {
-		result.error.issues.forEach((issue) => {
-			throw new Error(`Field ${issue.path.join(".")} | Error ${issue.message}`);
-		});
+		const errorMessages = result.error.issues.map(
+			(issue) => `Field ${issue.path.join(".")} | Error ${issue.message}`,
+		);
+		throw new Error(`Invalid Environment Variables:\n${errorMessages}`);
 	}
 	return result.data;
 };
 
-export const env = Environment();
+export const env = Environment() as Env;

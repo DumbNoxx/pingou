@@ -2,7 +2,7 @@ import { config } from "seyfert";
 import { env } from "./src/config/config";
 
 export default config.bot({
-	token: env.BOT_TOKEN,
+	token: env?.BOT_TOKEN,
 	locations: {
 		base: "src",
 		commands: "commands",
