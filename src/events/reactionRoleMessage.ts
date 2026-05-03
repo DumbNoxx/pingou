@@ -20,9 +20,10 @@ export default createEvent({
 
 		const member = await user.members.fetch(guild, memberId);
 		try {
-			if (reaction.emoji.id === CONFIG.EMOJIS.PEPEDOWN) {
-				if (member.roles.keys.includes(CONFIG.ROLES.PEPEDOWN)) return;
-
+			if (
+				reaction.emoji.id === CONFIG.EMOJIS.PEPEDOWN &&
+				!member.roles.keys.includes(CONFIG.ROLES.PEPEDOWN)
+			) {
 				if (reactionObject?.count === 5 && memberId) {
 					await user.members.addRole(guild, memberId, CONFIG.ROLES.PEPEDOWN);
 					await user.messages.write(reaction.channelId, {
